@@ -11,6 +11,7 @@
 --### This script expects mapping tables to be populated using the mapping data loader sql script.
 --### Covid pos patients are populated using the view VW_COVID_POS_PATIENTS in this script.
 --### This script has SQL blocks and based on settings in covid_config table selectively they have to be executed.
+--### fixed typo in header of file DailyCountsCSV
 --##############################################################################
 
 --------------------------------------------------------------------------------
@@ -73,7 +74,7 @@ create table covid_pos_patients (
 --Use dataloader script COVID_Mapping_And_Config_DL.sql to load mapping tables COVID_CODE_MAP,COVID_MED_MAP, COVID_LAB_MAP .
 													     
 --Populate covid_pos_patients from i2b2 view.
-insert into tm_cz.covid_pos_patients
+insert into covid_pos_patients
 select * from Vw_Covid_Pos_Patients ;
 commit;    
 
@@ -612,7 +613,7 @@ insert into covid_medications
 		select distinct p.patient_num, p.severe, m.med_class,	
 			(case when f.start_date <= (trunc(p.admission_date)-15) then 1 else 0 end) before_admission,
 			(case when f.start_date >= p.admission_date then 1 else 0 end) since_admission
-		from I2B2_USER.observation_fact f
+		from observation_fact f
 			inner join covid_cohort p 
 				on f.patient_num=p.patient_num 
 					and f.start_date >= (trunc(p.admission_date)-365)
@@ -785,9 +786,12 @@ update covid_medications set siteid = (select siteid from covid_config);commit;
 begin
     if exists (select * from covid_config where output_as_csv = 1) then*/
         -- DailyCounts
+
+--      File #1: DailyCounts-BCH.csv
+--      spool DailyCounts-BCH.csv;
         select s DailyCountsCSV
             from (
-                select 0 i, 'siteid,calendar_date,cumulative_patients_all,cumulative_patients_severe,cumulative_patients_dead'
+                select 0 i, 'siteid,calendar_date,cumulative_patients_all,cumulative_patients_severe,cumulative_patients_dead,'
                     ||'num_patients_in_hospital_on_this_date,num_patients_in_hospital_and_severe_on_this_date' s from dual
                 union all 
                 select row_number() over (order by calendar_date) i,
@@ -803,8 +807,10 @@ begin
                 select 9999999, '' from dual--Add a blank row to make sure the last line in the file with data ends with a line feed.
             ) t
             order by i;
-    
-        -- ClinicalCourse
+--spool off;
+
+--    File #2: ClinicalCourse-BCH.csv
+--    spool ClinicalCourse-BCH.csv ;   
         select s ClinicalCourseCSV
             from (
                 select 0 i, 'siteid,days_since_admission,num_patients_all_still_in_hospital,num_patients_ever_severe_still_in_hospital' s from dual
@@ -819,8 +825,11 @@ begin
                 select 9999999, '' from dual  --Add a blank row to make sure the last line in the file with data ends with a line feed.
             ) t
             order by i;
-    
-        -- Demographics
+--spool off;
+
+--    File #3: Demographics-BCH.csv
+--    spool Demographics-BCH.csv;   
+
         select s DemographicsCSV
             from (
                 select 0 i, 'siteid,sex,age_group,race,num_patients_all,num_patients_ever_severe' s from dual
@@ -837,7 +846,10 @@ begin
             ) t
             order by i;
     
-        -- Labs
+--spool off;
+
+--    File #4: Labs-BCH.csv
+--    spool Labs-BCH.csv;  
         select s LabsCSV
             from (
                 select 0 i, 'siteid,loinc,days_since_admission,units,'
@@ -866,7 +878,10 @@ begin
             ) t
             order by i;
     
-        -- Diagnoses
+--spool off;
+
+--    File #5: Diagnoses-BCH.csv
+--    spool Diagnoses-BCH.csv ; 
         select s DiagnosesCSV
             from (
                 select 0 i, 'siteid,icd_code_3chars,icd_version,'
@@ -887,7 +902,10 @@ begin
             ) t
             order by i;
 
-        -- Medications
+--spool off;
+
+--    File #6: Medications-BCH.csv
+--    spool Medications-BCH.csv ; 
 
         select s MedicationsCSV
             from (
@@ -907,7 +925,7 @@ begin
                 union all select 9999999, '' from dual --Add a blank row to make sure the last line in the file with data ends with a line feed.
             ) t
             order by i;
-
+--spool off;
 
 /*    end if;
 end*/
