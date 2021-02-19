@@ -180,8 +180,13 @@ commit;
 -- Add death dates to patients who have died.
 --Run below SQL block if in covid_config row exists where death_data_accurate = 1												 
 --------------------------------------------------------------------------------
+
+Declare
+v_death_data_accurate Integer ;
+
 begin
-    --if exists (select * from covid_config where death_data_accurate = 1 ) then 
+    Select death_data_accurate into v_death_data_accurate from covid_config where death_data_accurate = 1 ;
+    If v_death_data_accurate = 1 then
         -- Get the death date from the patient_dimension table.
         update covid_cohort c
             set c.death_date = (
@@ -193,19 +198,9 @@ begin
             )
             where exists (select c.patient_num from patient_dimension p 
             where p.patient_num = c.patient_num and (p.death_date is not null or p.vital_status_cd in ('Y'))); 
-            
+
         commit;
-        -- Check that there aren't more recent facts for the deceased patients.
-        update covid_cohort c
-            set c.death_date = (
-                select max(f.start_date) death_date
-                from  observation_fact f
-                where f.patient_num = c.patient_num
-                	and c.death_date is not null and f.start_date > c.death_date
-            )
-            where c.death_date is not null; 
-        commit;
-   -- end if;            
+    end if;            
 end;
 
 
