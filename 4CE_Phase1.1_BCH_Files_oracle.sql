@@ -12,6 +12,7 @@
 --### Covid pos patients are populated using the view VW_COVID_POS_PATIENTS in this script.
 --### This script has SQL blocks and based on settings in covid_config table selectively they have to be executed.
 --### fixed typo in header of file DailyCountsCSV
+--### Modified covid_labs load filter criteria.(03/12/2021)
 --##############################################################################
 
 --------------------------------------------------------------------------------
@@ -523,7 +524,7 @@ insert into covid_labs
 			where l.local_lab_code is not null
 				and f.nval_num is not null
 				and f.nval_num >= 0
-				and f.start_date >= p.admission_date
+				and f.start_date >= (p.admission_date -60)   -- Modified 03/15/2021
 				and l.loinc not in ('2019-8','2703-7')
 		) t
 		group by loinc, lab_units, patient_num, severe, days_since_admission
